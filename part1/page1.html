@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System Group - SNMP Manager</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        table { border-collapse: collapse; width: 60%; }
+        th, td { padding: 8px 12px; border: 1px solid #ccc; }
+        input { width: 80%; }
+        button { padding: 5px 10px; }
+    </style>
+</head>
+<body>
+    <div style="margin-top: 30px; text-align: center;">
+        <button onclick="goToPage('main.html')" style="padding:10px 20px; margin:5px; background-color:#4CAF50; color:white; border:none; border-radius:5px;">Main Page</button>
+        <button onclick="goToPage('page3.php')" style="padding:10px 20px; margin:5px; background-color:#2196F3; color:white; border:none; border-radius:5px;">Previous</button>
+        <button onclick="goToPage('page2.php')" style="padding:10px 20px; margin:5px; background-color:#f44336; color:white; border:none; border-radius:5px;">Next</button>
+    </div>
+    <script>
+    function goToPage(page) {
+        window.location.href = page;
+    }
+    </script>
+<h1>System Information </h1>
+
+<table id="systemTable">
+    <thead>
+        <tr><th>Item</th><th>Value</th><th>Action</th></tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+async function loadSystemInfo() {
+    const response = await fetch('sys.php');
+    const data = await response.json();
+    
+    const tableBody = document.querySelector('#systemTable tbody');
+    tableBody.innerHTML = "";
+
+    for (const [key, value] of Object.entries(data)) {
+        const editable = (key === "sysContact" || key === "sysName" || key === "sysLocation");
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${key}</td>
+            <td>
+                ${editable ? `<input type="text" id="input_${key}" value="${value}">` : value}
+            </td>
+            <td>
+                ${editable ? `<button onclick="updateValue('${key}')">Update</button>` : ''}
+            </td>
+        `;
+        tableBody.appendChild(row);
+    }
+}
+
+async function updateValue(key) {
+    const oidMap = {
+        "sysContact": "1.3.6.1.2.1.1.4.0",
+        "sysName": "1.3.6.1.2.1.1.5.0",
+        "sysLocation": "1.3.6.1.2.1.1.6.0"
+    };
+    const inputId = `input_${key}`;
+    const newValue = document.getElementById(inputId).value;
+
+    const response = await fetch('sys.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `oid=${encodeURIComponent(oidMap[key])}&value=${encodeURIComponent(newValue)}`
+    });
+
+    const result = await response.json();
+    alert(result.message);
+    loadSystemInfo(); 
+}
+
+window.onload = loadSystemInfo;
+</script>
+
+</body>
+</html>
