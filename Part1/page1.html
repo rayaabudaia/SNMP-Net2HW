@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System Group - SNMP Manager</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        table { border-collapse: collapse; width: 70%; margin: auto; }
+        th, td { padding: 8px 12px; border: 1px solid #ccc; text-align: center; }
+        input { width: 90%; }
+        button { padding: 5px 10px; }
+        .nav-buttons {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .nav-buttons button {
+            padding:10px 20px; 
+            margin:5px; 
+            border:none; 
+            border-radius:5px;
+            color:white;
+        }
+        .main-btn { background-color:#4CAF50; }
+        .prev-btn { background-color:#2196F3; }
+        .next-btn { background-color:#f44336; }
+    </style>
+</head>
+<body>
+
+<div class="nav-buttons">
+    <button onclick="goToPage('main.html')" class="main-btn">Main Page</button>
+    <button onclick="goToPage('page3.php')" class="prev-btn">Previous</button>
+    <button onclick="goToPage('page2.php')" class="next-btn">Next</button>
+</div>
+
+<h1 style="text-align:center;">System Information</h1>
+
+<table id="systemTable">
+    <thead>
+        <tr><th>Item</th><th>Value</th><th>Action</th></tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+// Navigation function
+function goToPage(page) {
+    window.location.href = page;
+}
+
+// Load system info when page loads
+window.onload = loadSystemInfo;
+
+async function loadSystemInfo() {
+    const response = await fetch('sys.php');
+    const data = await response.json();
+    
+    const tableBody = document.querySelector('#systemTable tbody');
+    tableBody.innerHTML = "";
+
+    for (const [key, value] of Object.entries(data)) {
+        if (key === "sysLocation") {
+            // First row: readonly view for sysLocation
+            const rowDisplay = document.createElement('tr');
+            rowDisplay.innerHTML = `
+                <td>${key} (Current)</td>
+                <td>${value}</td>
+                <td></td>
+            `;
+            tableBody.appendChild(rowDisplay);
+
+            // Second row: editable input for sysLocation
+            const rowEdit = document.createElement('tr');
+            rowEdit.innerHTML = `
+                <td>${key} (Update)</td>
+                <td><input type="text" id="input_${key}" value=""></td>
+                <td><button onclick="updateValue('${key}')">Update</button></td>
+            `;
+            tableBody.appendChild(rowEdit);
+        } 
+        else if (key === "sysContact" || key === "sysName") {
+            // First row: readonly view for sysName and sysContact
+            const rowDisplay = document.createElement('tr');
+            rowDisplay.innerHTML = `
+                <td>${key} (Current)</td>
+                <td>${value}</td>
+                <td></td>
+            `;
+            tableBody.appendChild(rowDisplay);
+
+            // Second row: editable input for sysName and sysContact
+            const rowEdit = document.createElement('tr');
+            rowEdit.innerHTML = `
+                <td>${key} (Update)</td>
+                <td><input type="text" id="input_${key}" value="${value}"></td>
+                <td><button onclick="updateValue('${key}')">Update</button></td>
+            `;
+            tableBody.appendChild(rowEdit);
+        } 
+        else {
+            // Normal readonly fields for other entries
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${key}</td>
+                <td>${value}</td>
+                <td></td>
+            `;
+            tableBody.appendChild(row);
+        }
+    }
+}
+
+// Function to update value
+async function updateValue(key) {
+    const oidMap = {
+        "sysContact": "1.3.6.1.2.1.1.4.0",
+        "sysName": "1.3.6.1.2.1.1.5.0",
+        "sysLocation": "1.3.6.1.2.1.1.6.0"
+    };
+    const inputId = `input_${key}`;
+    const newValue = document.getElementById(inputId).value;
+
+    if (newValue.trim() === "") {
+        alert("Value cannot be empty!");
+        return;
+    }
+
+    const response = await fetch('sys.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `oid=${encodeURIComponent(oidMap[key])}&value=${encodeURIComponent(newValue)}`
+    });
+
+    const result = await response.json();
+    alert(result.message);
+    loadSystemInfo(); // Refresh after update
+}
+</script>
+
+</body>
+</html>
